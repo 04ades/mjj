@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GymFlow · Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #1a1a1a; --surface: #242424; --surface2: #2e2e2e; --border: #3a3a3a;
+    --accent: #ffffff; --green: #2ecc71; --warn: #e0a800; --danger: #c0392b;
+    --text: #f5f5f5; --muted: #999999;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Nunito', sans-serif; min-height: 100vh; }
+
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px; }
+  .logo span { color: #aaaaaa; }
+  .hstats { display: flex; gap: 20px; }
+  .hstat { text-align: right; }
+  .hstat-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; line-height: 1; }
+  .hstat-lbl { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; }
+  .tab {
+    padding: 13px 16px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.82rem;
+    color: var(--muted); border: none; background: transparent; cursor: pointer;
+    border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap;
+  }
+  .tab.active { color: #ffffff; border-bottom-color: #ffffff; }
+
+  .page { display: none; padding: 16px; max-width: 800px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; border-top: 3px solid #ffffff; }
+  .stat.g { border-top-color: var(--green); }
+  .stat.w { border-top-color: var(--warn); }
+  .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; line-height: 1; }
+  .stat-lbl { font-size: 0.68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
+  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-weight: 800; font-size: 0.9rem; }
+
+  .form { display: flex; flex-direction: column; gap: 11px; padding: 16px; }
+  .form-row { display: flex; flex-direction: column; gap: 4px; }
+  label { font-size: 0.72rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+  input, select {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 13px; border-radius: 9px; font-size: 0.9rem;
+    font-family: 'Nunito', sans-serif; font-weight: 600; outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  input:focus, select:focus { border-color: #ffffff; }
+  select option { background: var(--surface2); }
+
+  .btn { padding: 11px 18px; border-radius: 9px; border: none; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.88rem; cursor: pointer; transition: all 0.15s; }
+  .btn-primary { background: #ffffff; color: #111111; }
+  .btn-primary:hover { background: #dddddd; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+  .btn-sm { padding: 5px 11px; font-size: 0.75rem; border-radius: 7px; }
+  .btn-green { background: var(--green); color: white; }
+  .btn-green:hover { background: #27ae60; }
+
+  .aluno-item { padding: 12px 16px; border-bottom: 1px solid rgba(46,46,62,0.5); display: flex; align-items: center; gap: 12px; }
+  .aluno-item:last-child { border-bottom: none; }
+  .av { width: 38px; height: 38px; border-radius: 9px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; color: white; flex-shrink: 0; }
+  .av.low { background: var(--warn); }
+  .av.empty, .av.expired { background: var(--danger); }
+  .ai { flex: 1; min-width: 0; }
+  .ai-nome { font-weight: 800; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ai-sub { font-size: 0.72rem; color: var(--muted); font-weight: 600; margin-top: 1px; }
+  .ai-sub.low { color: var(--warn); }
+  .ai-sub.empty, .ai-sub.expired { color: var(--danger); }
+
+  .badge { padding: 2px 8px; border-radius: 5px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
+  .badge-ok { background: rgba(46,204,113,0.15); color: var(--green); }
+  .badge-low { background: rgba(243,156,18,0.15); color: var(--warn); }
+  .badge-empty, .badge-expired { background: rgba(231,76,60,0.15); color: var(--danger); }
+
+  .prog { width: 60px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+  .prog-fill { height: 100%; border-radius: 2px; }
+
+  .hist-item { padding: 11px 16px; border-bottom: 1px solid rgba(46,46,62,0.4); display: flex; align-items: center; gap: 10px; font-size: 0.83rem; }
+  .hist-item:last-child { border-bottom: none; }
+  .hist-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .hist-nome { font-weight: 800; flex: 1; }
+  .hist-hora { color: var(--muted); font-size: 0.72rem; font-weight: 600; }
+  .hist-saldo { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: #aaaaaa; min-width: 24px; text-align: right; }
+
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 16px; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; width: 100%; max-width: 360px; animation: fadeUp 0.25s ease; }
+  .modal h3 { font-weight: 800; font-size: 1rem; margin-bottom: 18px; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 18px; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+  .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid #2ecc71; border-radius: 10px; padding: 11px 18px; font-weight: 700; font-size: 0.85rem; z-index: 200; animation: fadeUp 0.3s ease; white-space: nowrap; box-shadow: 0 6px 24px rgba(0,0,0,0.3); }
+  .empty-state { text-align: center; padding: 28px; color: var(--muted); font-weight: 700; font-size: 0.88rem; }
+  .search-bar { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+
+  /* Plano info box */
+  .plano-info { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 0.8rem; color: var(--muted); font-weight: 600; margin-top: -4px; }
+  .plano-info span { color: var(--text); }
+
+  .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .metric-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; line-height: 1; }
+  .metric-lbl { font-size: 0.68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+  .metric-sub { font-size: 0.72rem; color: var(--muted); font-weight: 600; margin-top: 5px; }
+  .vence-item { padding: 11px 16px; border-bottom: 1px solid rgba(46,46,62,0.4); display: flex; align-items: center; gap: 10px; font-size: 0.83rem; }
+  .vence-item:last-child { border-bottom: none; }
+  .vence-dias { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; min-width: 36px; text-align: center; }
+  .vence-info { flex: 1; }
+  .vence-nome { font-weight: 800; font-size: 0.88rem; }
+  .vence-sub { font-size: 0.72rem; color: var(--muted); font-weight: 600; margin-top: 1px; }
+  input[type="date"] { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 9px; font-family: 'Nunito', sans-serif; font-size: 0.85rem; font-weight: 600; outline: none; }
+  input[type="date"]:focus { border-color: #ffffff; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span style='font-family:"Bebas Neue",sans-serif;font-size:1.4rem;letter-spacing:3px;color:#ffffff'>MJJ</span> <span style='font-size:0.68rem;color:var(--muted);font-family:Nunito'>Admin</span></div>
+  <div class="hstats">
+    <div class="hstat"><div class="hstat-val" id="h-hoje">–</div><div class="hstat-lbl">Hoje</div></div>
+    <div class="hstat"><div class="hstat-val" style="color:var(--warn)" id="h-criticos">–</div><div class="hstat-lbl">Críticos</div></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="tab('inicio',this)">Início</button>
+  <button class="tab" onclick="tab('alunos',this)">Alunos</button>
+  <button class="tab" onclick="tab('historico',this)">Histórico</button>
+  <button class="tab" onclick="tab('novo',this)">+ Cadastrar</button>
+  <button class="tab" onclick="tab('financeiro',this)">Financeiro</button>
+</div>
+
+<!-- INÍCIO -->
+<div class="page active" id="page-inicio">
+  <div class="stats" id="stats"></div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">⚡ Check-ins de Hoje</span><span id="hj-count" style="font-size:0.75rem;color:var(--muted)"></span></div>
+    <div id="feed-hoje"><div class="empty-state">Nenhum check-in hoje</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">⚠️ Atenção</span></div>
+    <div id="feed-atencao"><div class="empty-state">Tudo certo 🎉</div></div>
+  </div>
+</div>
+
+<!-- ALUNOS -->
+<div class="page" id="page-alunos">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Todos os Alunos</span></div>
+    <div class="search-bar"><input type="text" placeholder="🔍 Buscar aluno..." oninput="filtrarAlunos(this.value)" style="width:100%"></div>
+    <div id="lista-alunos"><div class="empty-state">Carregando...</div></div>
+  </div>
+</div>
+
+<!-- HISTÓRICO -->
+<div class="page" id="page-historico">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Histórico de Check-ins</span></div>
+    <div id="lista-hist"><div class="empty-state">Carregando...</div></div>
+  </div>
+</div>
+
+<!-- NOVO ALUNO -->
+<div class="page" id="page-novo">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Cadastrar Novo Aluno</span></div>
+    <div class="form">
+      <div class="form-row">
+        <label>Nome completo</label>
+        <input type="text" id="n-nome" placeholder="Ex: Maria Silva">
+      </div>
+      <div class="form-row">
+        <label>Plano</label>
+        <select id="n-plano" onchange="atualizarInfoPlano()">
+          <option value="4 aulas">4 aulas — R$ 760 · 30 dias</option>
+          <option value="10 aulas" selected>10 aulas — R$ 1.750 · 30 dias</option>
+          <option value="20 aulas">20 aulas — R$ 3.000 · 45 dias</option>
+          <option value="alternativo">🎟 Plano Alternativo (bolsa)</option>
+        </select>
+      </div>
+      <div class="plano-info" id="plano-info"></div>
+      <div id="n-alt" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:none;flex-direction:column;gap:10px">
+        <div style="font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:2px">Configurar plano alternativo</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div class="form-row">
+            <label>Valor (R$)</label>
+            <input type="number" id="n-alt-valor" placeholder="0" min="0" oninput="atualizarInfoPlano()">
+          </div>
+          <div class="form-row">
+            <label>Nº de aulas</label>
+            <input type="number" id="n-alt-aulas" placeholder="0" min="1" oninput="atualizarInfoPlano()">
+          </div>
+          <div class="form-row">
+            <label>Validade (dias)</label>
+            <input type="number" id="n-alt-dias" placeholder="30" min="1" oninput="atualizarInfoPlano()">
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="cadastrar()">Cadastrar Aluno</button>
+    </div>
+  </div>
+</div>
+
+<!-- FINANCEIRO -->
+<div class="page" id="page-financeiro">
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-header"><span class="card-title">Período</span></div>
+    <div style="padding:12px 16px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px">
+        <label>De</label>
+        <input type="date" id="fil-de" onchange="renderFinanceiro()">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px">
+        <label>Até</label>
+        <input type="date" id="fil-ate" onchange="renderFinanceiro()">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="filtroRapido(7)">7d</button>
+        <button class="btn btn-ghost btn-sm" onclick="filtroRapido(30)">30d</button>
+        <button class="btn btn-ghost btn-sm" onclick="filtroMesAtual()">Mês</button>
+        <button class="btn btn-ghost btn-sm" onclick="filtroTudo()">Tudo</button>
+      </div>
+    </div>
+  </div>
+  <div class="metrics" id="metrics-fin"></div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Alunos no Período</span><span id="alunos-periodo-count" style="font-size:0.75rem;color:var(--muted)"></span></div>
+    <div id="feed-alunos-periodo"><div class="empty-state">Nenhum aluno no período</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Vencendo em 7 Dias</span><span id="vence-count" style="font-size:0.75rem;color:var(--muted)"></span></div>
+    <div id="feed-vencendo"><div class="empty-state">Nenhum contrato vencendo em breve</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Retenção de Alunos</span></div>
+    <div id="feed-retencao"><div class="empty-state">Sem dados</div></div>
+  </div>
+</div>
+
+<!-- MODAL RENOVAR -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <h3>🔄 Renovar Contrato</h3>
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div class="form-row"><label>Aluno</label><input type="text" id="r-nome" readonly style="opacity:0.6"></div>
+      <div class="form-row">
+        <label>Novo plano</label>
+        <select id="r-plano" onchange="atualizarInfoRenovar()">
+          <option value="4 aulas">4 aulas — R$ 760 · 30 dias</option>
+          <option value="10 aulas" selected>10 aulas — R$ 1.750 · 30 dias</option>
+          <option value="20 aulas">20 aulas — R$ 3.000 · 45 dias</option>
+          <option value="alternativo">🎟 Plano Alternativo (bolsa)</option>
+        </select>
+      </div>
+      <div class="plano-info" id="r-info"></div>
+      <div id="r-alt" style="display:none;flex-direction:column;gap:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div class="form-row">
+            <label>Valor (R$)</label>
+            <input type="number" id="r-alt-valor" placeholder="0" min="0" oninput="atualizarInfoRenovar()">
+          </div>
+          <div class="form-row">
+            <label>Nº de aulas</label>
+            <input type="number" id="r-alt-aulas" placeholder="0" min="1" oninput="atualizarInfoRenovar()">
+          </div>
+          <div class="form-row">
+            <label>Validade (dias)</label>
+            <input type="number" id="r-alt-dias" placeholder="30" min="1" oninput="atualizarInfoRenovar()">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" style="flex:1" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="confirmarRenovar()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://wfmpsubpmboadsvqalig.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmbXBzdWJwbWJvYWRzdnFhbGlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxOTc4MzUsImV4cCI6MjA4Nzc3MzgzNX0.cJS_Hkp6U3gMflqDdWk5oz-60b08MpKzRUX5G5CPXSo';
+const H = {
+  'apikey': SUPABASE_ANON,
+  'Authorization': 'Bearer ' + SUPABASE_ANON,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+const sb = {
+  from: (table) => ({
+    select: (cols) => ({
+      order: (col, opts) => fetch(SUPABASE_URL+'/rest/v1/'+table+'?select=*&order='+col+'.'+(opts&&opts.ascending===false?'desc':'asc'), {headers:H}).then(r=>r.json()).then(data=>({data})),
+    }),
+    insert: (data) => fetch(SUPABASE_URL+'/rest/v1/'+table, {method:'POST',headers:H,body:JSON.stringify(data)}).then(async r=>{ if(!r.ok){const e=await r.json();return {error:{message:e.message||r.statusText}};} return {error:null}; }),
+    update: (data) => ({
+      eq: (col, val) => fetch(SUPABASE_URL+'/rest/v1/'+table+'?'+col+'=eq.'+val, {method:'PATCH',headers:H,body:JSON.stringify(data)}).then(async r=>{ if(!r.ok){const e=await r.json();return {error:{message:e.message||r.statusText}};} return {error:null}; })
+    })
+  })
+};
+
+const PLANOS = {
+  '4 aulas':  { aulas: 4,  dias: 30, valor: 760  },
+  '10 aulas': { aulas: 10, dias: 30, valor: 1750 },
+  '20 aulas': { aulas: 20, dias: 45, valor: 3000 },
+};
+
+let alunos = [], checkins = [], renovandoId = null, filtro = '';
+
+function iniciais(nome) { return nome.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase(); }
+
+function statusAluno(a) {
+  if (a.data_fim && new Date(a.data_fim) < new Date()) return 'expired';
+  if (a.aulas_restantes <= 0) return 'empty';
+  if (a.aulas_restantes <= 2) return 'low';
+  return 'ok';
+}
+
+function diasRestantes(a) {
+  if (!a.data_fim) return null;
+  return Math.ceil((new Date(a.data_fim) - new Date()) / 86400000);
+}
+
+function initFiltros() {
+  var hoje = new Date();
+  var y = hoje.getFullYear(), m = String(hoje.getMonth()+1).padStart(2,'0');
+  var primeiroDia = y+'-'+m+'-01';
+  var ultimoDia = hoje.toISOString().slice(0,10);
+  document.getElementById('fil-de').value = primeiroDia;
+  document.getElementById('fil-ate').value = ultimoDia;
+}
+
+function filtroRapido(dias) {
+  var hoje = new Date();
+  var de = new Date(hoje); de.setDate(hoje.getDate() - dias);
+  document.getElementById('fil-de').value = de.toISOString().slice(0,10);
+  document.getElementById('fil-ate').value = hoje.toISOString().slice(0,10);
+  renderFinanceiro();
+}
+
+function filtroMesAtual() {
+  var hoje = new Date();
+  var y = hoje.getFullYear(), m = String(hoje.getMonth()+1).padStart(2,'0');
+  document.getElementById('fil-de').value = y+'-'+m+'-01';
+  document.getElementById('fil-ate').value = hoje.toISOString().slice(0,10);
+  renderFinanceiro();
+}
+
+function filtroTudo() {
+  document.getElementById('fil-de').value = '2024-01-01';
+  document.getElementById('fil-ate').value = new Date().toISOString().slice(0,10);
+  renderFinanceiro();
+}
+
+function renderFinanceiro() {
+  var hoje = new Date();
+  var deVal = document.getElementById('fil-de') ? document.getElementById('fil-de').value : '';
+  var ateVal = document.getElementById('fil-ate') ? document.getElementById('fil-ate').value : '';
+
+  var de = deVal ? new Date(deVal + 'T00:00:00') : new Date('2024-01-01');
+  var ate = ateVal ? new Date(ateVal + 'T23:59:59') : hoje;
+
+  // Alunos no período (para listagem)
+  var alunosPeriodo = alunos.filter(function(a) {
+    var dt = a.created_at || a.inserted_at || '';
+    if (!dt) return false;
+    var d = new Date(dt);
+    return d >= de && d <= ate;
+  });
+
+  // Receita = TODOS os alunos cadastrados (sem filtro de data)
+  var receita = alunos.reduce(function(s,a){ return s + (a.valor_pago||0); }, 0);
+  var ticketMedio = alunos.length > 0 ? Math.round(receita / alunos.length) : 0;
+
+  // Retenção geral
+  var comCheckin = {};
+  checkins.forEach(function(c){ comCheckin[c.aluno_id] = true; });
+  var totalComCheckin = alunos.filter(function(a){ return comCheckin[a.id]; }).length;
+  var ativosComCheckin = alunos.filter(function(a){ return comCheckin[a.id] && (statusAluno(a)==='ok'||statusAluno(a)==='low'); }).length;
+  var retencaoPct = totalComCheckin > 0 ? Math.round(ativosComCheckin/totalComCheckin*100) : 0;
+
+  // Vencendo em 7 dias
+  var em7dias = alunos.filter(function(a){
+    if (!a.data_fim) return false;
+    var dias = Math.ceil((new Date(a.data_fim) - hoje)/86400000);
+    return dias >= 0 && dias <= 7 && statusAluno(a) !== 'expired';
+  }).sort(function(a,b){ return new Date(a.data_fim)-new Date(b.data_fim); });
+
+  // Render métricas
+  var corR = retencaoPct >= 70 ? 'var(--green)' : retencaoPct >= 40 ? 'var(--warn)' : 'var(--danger)';
+  document.getElementById('metrics-fin').innerHTML =
+    '<div class="metric-card"><div class="metric-val" style="color:var(--green)">R$ '+receita.toLocaleString('pt-BR')+'</div><div class="metric-lbl">Receita</div><div class="metric-sub">'+alunosPeriodo.length+' aluno(s) no período</div></div>' +
+    '<div class="metric-card"><div class="metric-val">R$ '+ticketMedio.toLocaleString('pt-BR')+'</div><div class="metric-lbl">Ticket Médio</div><div class="metric-sub">Média do período</div></div>' +
+    '<div class="metric-card"><div class="metric-val" style="color:'+corR+'">'+retencaoPct+'%</div><div class="metric-lbl">Retenção</div><div class="metric-sub">'+ativosComCheckin+' de '+totalComCheckin+' ativos</div></div>' +
+    '<div class="metric-card"><div class="metric-val" style="color:var(--warn)">'+em7dias.length+'</div><div class="metric-lbl">Vencendo 7d</div><div class="metric-sub">Ligar para renovar</div></div>';
+
+  // Alunos no período
+  document.getElementById('alunos-periodo-count').textContent = alunosPeriodo.length+' aluno(s)';
+  if (!alunosPeriodo.length) {
+    document.getElementById('feed-alunos-periodo').innerHTML = '<div class="empty-state">Nenhum aluno cadastrado neste período</div>';
+  } else {
+    var sorted = alunosPeriodo.slice().sort(function(a,b){ return new Date(b.created_at||b.inserted_at||0) - new Date(a.created_at||a.inserted_at||0); });
+    document.getElementById('feed-alunos-periodo').innerHTML = sorted.map(function(a){
+      var dt = new Date(a.created_at||a.inserted_at||'').toLocaleDateString('pt-BR');
+      var st = statusAluno(a);
+      return '<div class="aluno-item"><div class="av '+st+'">'+iniciais(a.nome)+'</div><div class="ai"><div class="ai-nome">'+a.nome+'</div><div class="ai-sub">'+a.plano+' · R$ '+a.valor_pago.toLocaleString('pt-BR')+' · '+dt+'</div></div></div>';
+    }).join('');
+  }
+
+  // Vencendo
+  document.getElementById('vence-count').textContent = em7dias.length+' aluno(s)';
+  if (!em7dias.length) {
+    document.getElementById('feed-vencendo').innerHTML = '<div class="empty-state">Nenhum contrato vencendo em breve</div>';
+  } else {
+    document.getElementById('feed-vencendo').innerHTML = em7dias.map(function(a){
+      var dias = Math.ceil((new Date(a.data_fim)-hoje)/86400000);
+      var cor = dias<=2?'var(--danger)':dias<=4?'var(--warn)':'var(--green)';
+      var fim = new Date(a.data_fim).toLocaleDateString('pt-BR');
+      return '<div class="vence-item"><div class="vence-dias" style="color:'+cor+'">'+dias+'d</div><div class="vence-info"><div class="vence-nome">'+a.nome+'</div><div class="vence-sub">Vence '+fim+' - '+a.aulas_restantes+' aulas restantes</div></div><button class="btn btn-green btn-sm" onclick="abrirModal('+a.id+')">Renovar</button></div>';
+    }).join('');
+  }
+
+  // Retenção detalhada
+  var perdidos = alunos.filter(function(a){ return comCheckin[a.id] && (statusAluno(a)==='empty'||statusAluno(a)==='expired'); });
+  var semCheckin = alunos.filter(function(a){ return !comCheckin[a.id]; });
+  var retHtml = '';
+  if (perdidos.length) {
+    retHtml += '<div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:0.8rem;color:var(--muted);font-weight:700">Inativos ('+perdidos.length+')</div>';
+    retHtml += perdidos.map(function(a){
+      var sub = statusAluno(a)==='expired'?'Contrato vencido':'Aulas zeradas';
+      return '<div class="aluno-item"><div class="av '+statusAluno(a)+'">'+iniciais(a.nome)+'</div><div class="ai"><div class="ai-nome">'+a.nome+'</div><div class="ai-sub '+statusAluno(a)+'">'+sub+'</div></div><button class="btn btn-green btn-sm" onclick="abrirModal('+a.id+')">Renovar</button></div>';
+    }).join('');
+  }
+  if (semCheckin.length) {
+    retHtml += '<div style="padding:12px 16px;border-bottom:1px solid var(--border);border-top:1px solid var(--border);font-size:0.8rem;color:var(--muted);font-weight:700">Sem check-in ('+semCheckin.length+')</div>';
+    retHtml += semCheckin.map(function(a){
+      return '<div class="aluno-item"><div class="av" style="background:#444">'+iniciais(a.nome)+'</div><div class="ai"><div class="ai-nome">'+a.nome+'</div><div class="ai-sub">Nunca fez check-in · '+a.plano+'</div></div></div>';
+    }).join('');
+  }
+  document.getElementById('feed-retencao').innerHTML = retHtml || '<div class="empty-state">Todos os alunos estão ativos</div>';
+}
+
+async function carregar() {
+  try {
+    const ra = await fetch(SUPABASE_URL+'/rest/v1/alunos?select=*&order=nome.asc', {headers:H});
+    alunos = await ra.json();
+    const rc = await fetch(SUPABASE_URL+'/rest/v1/checkins?select=*&order=criado_em.desc&limit=100', {headers:H});
+    checkins = await rc.json();
+    if (!Array.isArray(alunos)) alunos = [];
+    if (!Array.isArray(checkins)) checkins = [];
+  } catch(e) { console.error('Erro ao carregar:', e); alunos=[]; checkins=[]; }
+  render();
+}
+
+function render() {
+  renderHeader();
+  renderStats();
+  renderHoje();
+  renderAtencao();
+  renderAlunos();
+  renderHist();
+  renderFinanceiro();
+}
+
+function renderHeader() {
+  const hoje = new Date().toISOString().slice(0,10);
+  document.getElementById('h-hoje').textContent = checkins.filter(c=>c.criado_em?.slice(0,10)===hoje).length;
+  document.getElementById('h-criticos').textContent = alunos.filter(a=>['low','empty','expired'].includes(statusAluno(a))).length;
+}
+
+function renderStats() {
+  const total = alunos.length;
+  const ativos = alunos.filter(a=>statusAluno(a)==='ok'||statusAluno(a)==='low').length;
+  const prob = alunos.filter(a=>['empty','expired'].includes(statusAluno(a))).length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-val">${total}</div><div class="stat-lbl">Alunos</div></div>
+    <div class="stat g"><div class="stat-val" style="color:var(--green)">${ativos}</div><div class="stat-lbl">Ativos</div></div>
+    <div class="stat w"><div class="stat-val" style="color:var(--danger)">${prob}</div><div class="stat-lbl">Bloqueados</div></div>
+  `;
+}
+
+function renderHoje() {
+  const hoje = new Date().toISOString().slice(0,10);
+  const hj = checkins.filter(c=>c.criado_em?.slice(0,10)===hoje);
+  document.getElementById('hj-count').textContent = `${hj.length} registro${hj.length!==1?'s':''}`;
+  if (!hj.length) { document.getElementById('feed-hoje').innerHTML='<div class="empty-state">Nenhum check-in hoje ainda</div>'; return; }
+  document.getElementById('feed-hoje').innerHTML = hj.map(c => {
+    const h = new Date(c.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="hist-item"><div class="hist-dot"></div><div class="hist-nome">${c.aluno_nome}</div><div class="hist-hora">${h}</div><div class="hist-saldo">${c.aulas_restantes_apos}</div></div>`;
+  }).join('');
+}
+
+function renderAtencao() {
+  const prob = alunos.filter(a => ['low','empty','expired'].includes(statusAluno(a)));
+  if (!prob.length) { document.getElementById('feed-atencao').innerHTML='<div class="empty-state">Tudo certo 🎉</div>'; return; }
+  document.getElementById('feed-atencao').innerHTML = prob.map(a => {
+    const st = statusAluno(a);
+    const sub = st==='expired' ? 'Contrato vencido' : st==='empty' ? 'Sem aulas' : `${a.aulas_restantes} aula${a.aulas_restantes!==1?'s':''} restante${a.aulas_restantes!==1?'s':''}`;
+    return `<div class="aluno-item">
+      <div class="av ${st}">${iniciais(a.nome)}</div>
+      <div class="ai"><div class="ai-nome">${a.nome}</div><div class="ai-sub ${st}">${sub}</div></div>
+      <button class="btn btn-green btn-sm" onclick="abrirModal(${a.id})">Renovar</button>
+    </div>`;
+  }).join('');
+}
+
+function renderAlunos() {
+  const lista = filtro ? alunos.filter(a=>a.nome.toLowerCase().includes(filtro)) : alunos;
+  if (!lista.length) { document.getElementById('lista-alunos').innerHTML='<div class="empty-state">Nenhum aluno encontrado</div>'; return; }
+  document.getElementById('lista-alunos').innerHTML = lista.map(a => {
+    const st = statusAluno(a);
+    const pct = Math.round(((a.aulas_restantes||0)/((PLANOS[a.plano]?.aulas||a.aulas_total)||1))*100);
+    const cor = pct>30?'var(--green)':pct>10?'var(--warn)':'var(--danger)';
+    const badges = {ok:'<span class="badge badge-ok">Ativo</span>',low:'<span class="badge badge-low">Crítico</span>',empty:'<span class="badge badge-empty">Sem aulas</span>',expired:'<span class="badge badge-expired">Vencido</span>'};
+    const dr = diasRestantes(a);
+    const sub = dr !== null ? (dr <= 0 ? 'Contrato vencido' : `Vence em ${dr} dia${dr!==1?'s':''}`) : 'Contrato não iniciado';
+    return `<div class="aluno-item">
+      <div class="av ${st}">${iniciais(a.nome)}</div>
+      <div class="ai">
+        <div class="ai-nome">${a.nome}</div>
+        <div class="ai-sub">${a.plano} · ${sub}</div>
+      </div>
+      <div class="prog"><div class="prog-fill" style="width:${pct}%;background:${cor}"></div></div>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:${cor};min-width:22px;text-align:center">${a.aulas_restantes}</span>
+      ${badges[st]||''}
+      <button class="btn btn-ghost btn-sm" onclick="abrirModal(${a.id})">Renovar</button>
+    </div>`;
+  }).join('');
+}
+
+function renderHist() {
+  if (!checkins.length) { document.getElementById('lista-hist').innerHTML='<div class="empty-state">Nenhum check-in ainda</div>'; return; }
+  document.getElementById('lista-hist').innerHTML = checkins.slice(0,60).map(c => {
+    const dt = new Date(c.criado_em);
+    const str = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="hist-item"><div class="hist-dot"></div><div class="hist-nome">${c.aluno_nome}</div><div class="hist-hora">${str}</div><div class="hist-saldo">${c.aulas_restantes_apos}</div></div>`;
+  }).join('');
+}
+
+function getPlanoData(prefix) {
+  const plano = document.getElementById(prefix+'-plano').value;
+  if (plano === 'alternativo') {
+    const valor = parseInt(document.getElementById(prefix+'-alt-valor').value) || 0;
+    const aulas = parseInt(document.getElementById(prefix+'-alt-aulas').value) || 0;
+    const dias  = parseInt(document.getElementById(prefix+'-alt-dias').value)  || 30;
+    return { plano: 'alternativo', aulas, dias, valor };
+  }
+  const p = PLANOS[plano];
+  return p ? { plano, ...p } : null;
+}
+
+function infoPlano(plano) {
+  const p = PLANOS[plano];
+  if (!p) return '';
+  return `<span>R$ ${p.valor.toLocaleString('pt-BR')}</span> · <span>${p.aulas} aulas</span> · Validade: <span>${p.dias} dias</span> (a partir do 1º check-in)`;
+}
+
+function toggleAlt(prefix) {
+  const isAlt = document.getElementById(prefix+'-plano').value === 'alternativo';
+  const el = document.getElementById(prefix+'-alt');
+  if (el) el.style.display = isAlt ? 'flex' : 'none';
+}
+
+function atualizarInfoPlano() {
+  const plano = document.getElementById('n-plano').value;
+  toggleAlt('n');
+  if (plano === 'alternativo') {
+    const v = parseInt(document.getElementById('n-alt-valor').value)||0;
+    const a = parseInt(document.getElementById('n-alt-aulas').value)||0;
+    const d = parseInt(document.getElementById('n-alt-dias').value)||30;
+    document.getElementById('plano-info').innerHTML =
+      (v||a||d) ? `<span>R$ ${v.toLocaleString('pt-BR')}</span> · <span>${a} aulas</span> · Validade: <span>${d} dias</span> (a partir do 1º check-in)` : '';
+  } else {
+    document.getElementById('plano-info').innerHTML = infoPlano(plano);
+  }
+}
+function atualizarInfoRenovar() {
+  const plano = document.getElementById('r-plano').value;
+  toggleAlt('r');
+  if (plano === 'alternativo') {
+    const v = parseInt(document.getElementById('r-alt-valor').value)||0;
+    const a = parseInt(document.getElementById('r-alt-aulas').value)||0;
+    const d = parseInt(document.getElementById('r-alt-dias').value)||30;
+    document.getElementById('r-info').innerHTML =
+      (v||a||d) ? `<span>R$ ${v.toLocaleString('pt-BR')}</span> · <span>${a} aulas</span> · Validade: <span>${d} dias</span> (a partir do 1º check-in)` : '';
+  } else {
+    document.getElementById('r-info').innerHTML = infoPlano(plano);
+  }
+}
+
+async function cadastrar() {
+  const nome = document.getElementById('n-nome').value.trim();
+  if (!nome) { toast('⚠️ Digite o nome do aluno'); return; }
+  const pd = getPlanoData('n');
+  if (!pd) { toast('⚠️ Plano inválido'); return; }
+  if (pd.plano === 'alternativo') {
+    if (!pd.aulas || pd.aulas < 1) { toast('⚠️ Informe o número de aulas'); return; }
+  }
+  const nomePlano = pd.plano === 'alternativo' ? `Alternativo (${pd.aulas}a/${pd.dias}d)` : pd.plano;
+  try {
+    const ri = await fetch(SUPABASE_URL+'/rest/v1/alunos', {method:'POST', headers:H, body:JSON.stringify({nome, plano:nomePlano, aulas_total:pd.aulas, aulas_restantes:pd.aulas, valor_pago:pd.valor})});
+    if (!ri.ok) { const e=await ri.json(); toast('Erro: '+(e.message||ri.statusText)); return; }
+  } catch(e) { toast('Erro: '+e.message); return; }
+  document.getElementById('n-nome').value = '';
+  document.getElementById('n-plano').value = '10 aulas';
+  atualizarInfoPlano();
+  toast('✅ ' + nome + ' cadastrado!');
+  await carregar();
+}
+
+function abrirModal(id) {
+  renovandoId = id;
+  const a = alunos.find(x=>x.id===id);
+  document.getElementById('r-nome').value = a.nome;
+  document.getElementById('r-plano').value = a.plano || '10 aulas';
+  atualizarInfoRenovar();
+  document.getElementById('modal').classList.add('open');
+}
+function fecharModal() { document.getElementById('modal').classList.remove('open'); renovandoId=null; }
+
+async function confirmarRenovar() {
+  const pd = getPlanoData('r');
+  if (!pd) { toast('⚠️ Plano inválido'); return; }
+  if (pd.plano === 'alternativo') {
+    if (!pd.aulas || pd.aulas < 1) { toast('⚠️ Informe o número de aulas'); return; }
+  }
+  const nomePlano = pd.plano === 'alternativo' ? `Alternativo (${pd.aulas}a/${pd.dias}d)` : pd.plano;
+  try {
+    const ru = await fetch(SUPABASE_URL+'/rest/v1/alunos?id=eq.'+renovandoId, {method:'PATCH', headers:H, body:JSON.stringify({plano:nomePlano, aulas_total:pd.aulas, aulas_restantes:pd.aulas, valor_pago:pd.valor, data_inicio:null, data_fim:null})});
+    if (!ru.ok) { const e=await ru.json(); toast('Erro: '+(e.message||ru.statusText)); return; }
+  } catch(e) { toast('Erro: '+e.message); return; }
+  fecharModal();
+  toast('🔄 Contrato renovado!');
+  await carregar();
+}
+
+function filtrarAlunos(v) { filtro = v.toLowerCase(); renderAlunos(); }
+
+function tab(nome, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+nome).classList.add('active');
+  btn.classList.add('active');
+}
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 3000);
+}
+
+atualizarInfoPlano();
+carregar();
+initFiltros();
+setInterval(carregar, 30000);
+</script>
+</body>
+</html>

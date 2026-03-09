@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check-in</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ebebeb;
+    --surface: #ffffff;
+    --accent: #222222;
+    --dark: #111111;
+    --text: #1a1a1a;
+    --muted: #777777;
+    --green: #2ecc71;
+    --warn: #e0a800;
+    --danger: #c0392b;
+  }
+  body { background: var(--bg); font-family: 'Nunito', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+  header { width: 100%; background: #111111; padding: 18px 32px; display: flex; align-items: center; justify-content: center; }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: white; letter-spacing: 3px; }
+  .logo span { color: var(--accent); }
+  .subtitle { text-align: center; margin-top: 28px; padding: 0 20px; }
+  .subtitle h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.4rem; color: var(--text); letter-spacing: 2px; }
+  .subtitle p { color: var(--muted); font-size: 0.95rem; margin-top: 6px; font-weight: 600; }
+  #screen-lista { width: 100%; max-width: 680px; padding: 20px 16px 40px; }
+  .search-box {
+    width: 100%; padding: 15px 18px; border-radius: 14px; border: 2px solid transparent;
+    background: white; font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 700;
+    color: var(--text); outline: none; margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08); transition: border-color 0.2s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--muted); }
+  .alunos-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .aluno-btn {
+    background: white; border: 2px solid transparent; border-radius: 14px; padding: 16px 18px;
+    text-align: left; cursor: pointer; transition: all 0.15s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 12px;
+    font-family: 'Nunito', sans-serif;
+  }
+  .aluno-btn:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+  .aluno-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .avatar {
+    width: 42px; height: 42px; border-radius: 10px; background: #111111;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 1rem; color: white; flex-shrink: 0;
+  }
+  .avatar.low { background: var(--warn); }
+  .avatar.empty, .avatar.expired { background: var(--danger); }
+  .aluno-info { flex: 1; min-width: 0; }
+  .aluno-nome { font-size: 0.95rem; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .aluno-sub { font-size: 0.73rem; color: var(--muted); font-weight: 600; margin-top: 2px; }
+  .aluno-sub.low { color: var(--warn); }
+  .aluno-sub.empty, .aluno-sub.expired { color: var(--danger); }
+
+  #screen-confirma {
+    display: none; position: fixed; inset: 0; background: rgba(235,235,235,0.97);
+    z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 32px;
+  }
+  #screen-confirma.show { display: flex; }
+  .confirma-card {
+    background: white; border-radius: 28px; padding: 40px 36px; text-align: center;
+    max-width: 380px; width: 100%; box-shadow: 0 16px 50px rgba(0,0,0,0.12);
+    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .confirma-nome { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--text); letter-spacing: 1px; margin: 8px 0 4px; }
+  .confirma-info { font-size: 0.82rem; color: var(--muted); font-weight: 700; line-height: 1.7; margin-top: 4px; }
+  .btn-cheguei {
+    width: 100%; background: var(--accent); color: white; border: none; border-radius: 16px;
+    padding: 20px; font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 3px;
+    cursor: pointer; margin-top: 24px; transition: all 0.15s; box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+  .btn-cheguei:hover { background: #d03a14; transform: translateY(-2px); }
+  .btn-cheguei:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; transform: none; }
+  .btn-voltar {
+    background: transparent; border: 2px solid var(--muted); color: var(--muted);
+    border-radius: 10px; padding: 11px 24px; font-family: 'Nunito', sans-serif;
+    font-weight: 700; font-size: 0.88rem; cursor: pointer; margin-top: 12px; width: 100%; transition: all 0.15s;
+  }
+  .btn-voltar:hover { border-color: var(--text); color: var(--text); }
+
+  #screen-sucesso {
+    display: none; position: fixed; inset: 0; z-index: 60;
+    flex-direction: column; align-items: center; justify-content: center; padding: 40px;
+    background: #111111;
+  }
+  #screen-sucesso.show { display: flex; }
+  .sucesso-card { text-align: center; color: white; animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  .sucesso-icon { font-size: 4.5rem; display: block; margin-bottom: 12px; animation: bounce 0.6s ease 0.2s both; }
+  .sucesso-nome { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; letter-spacing: 2px; line-height: 1; }
+  .sucesso-label { font-size: 0.88rem; color: rgba(255,255,255,0.5); font-weight: 700; margin-top: 6px; }
+  .sucesso-saldo { background: var(--accent); border-radius: 20px; padding: 18px 40px; margin-top: 22px; display: inline-block; }
+  .sucesso-num { font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; color: white; line-height: 1; }
+  .sucesso-num-label { font-size: 0.78rem; color: rgba(255,255,255,0.8); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .sucesso-validade { font-size: 0.78rem; color: rgba(255,255,255,0.35); margin-top: 14px; font-weight: 600; }
+  .aviso { border-radius: 12px; padding: 10px 18px; margin-top: 14px; font-weight: 700; font-size: 0.83rem; }
+  .aviso-warn { background: rgba(243,156,18,0.2); border: 1px solid var(--warn); color: var(--warn); }
+  .aviso-danger { background: rgba(231,76,60,0.2); border: 1px solid var(--danger); color: #ff9a9a; }
+  .progress-wrap { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 26px; width: 260px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; animation: shrink 4s linear forwards; }
+
+  @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes bounce { 0% { transform: scale(0); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+  .loading { text-align: center; padding: 50px; color: var(--muted); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header><div class="logo"><span style='font-family:"Bebas Neue",sans-serif;font-size:2rem;letter-spacing:4px;color:#1a1a1a'>MJJ</span></div></header>
+
+<div class="subtitle">
+  <h1>BOM TREINO! 💪</h1>
+  <p>Selecione seu nome para registrar a presença</p>
+</div>
+
+<div id="screen-lista">
+  <input class="search-box" type="text" placeholder="🔍 Buscar seu nome..." oninput="filtrar(this.value)" id="search">
+  <div class="alunos-grid" id="grid"><div class="loading">Carregando...</div></div>
+</div>
+
+<div id="screen-confirma">
+  <div class="confirma-card">
+    <div style="font-size:2.2rem">👋</div>
+    <div class="confirma-nome" id="c-nome"></div>
+    <div class="confirma-info" id="c-info"></div>
+    <div style="font-size:0.82rem;color:var(--muted);margin-top:14px;font-weight:600">É você mesmo?</div>
+    <button class="btn-cheguei" id="btn-cheguei" onclick="confirmarCheckin()">CHEGUEI!</button>
+    <button class="btn-voltar" onclick="voltarLista()">← Não sou eu</button>
+  </div>
+</div>
+
+<div id="screen-sucesso">
+  <div class="sucesso-card">
+    <span class="sucesso-icon">✅</span>
+    <div class="sucesso-nome" id="s-nome"></div>
+    <div class="sucesso-label">Presença registrada!</div>
+    <div class="sucesso-saldo">
+      <div class="sucesso-num" id="s-num"></div>
+      <div class="sucesso-num-label">aulas restantes</div>
+    </div>
+    <div class="sucesso-validade" id="s-validade"></div>
+    <div id="s-aviso"></div>
+    <div class="progress-wrap"><div class="progress-fill" id="prog"></div></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://wfmpsubpmboadsvqalig.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmbXBzdWJwbWJvYWRzdnFhbGlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxOTc4MzUsImV4cCI6MjA4Nzc3MzgzNX0.cJS_Hkp6U3gMflqDdWk5oz-60b08MpKzRUX5G5CPXSo';
+const H = {
+  'apikey': SUPABASE_ANON,
+  'Authorization': 'Bearer ' + SUPABASE_ANON,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+const sb = {
+  from: (table) => ({
+    select: (cols) => ({
+      order: (col, opts) => fetch(SUPABASE_URL+'/rest/v1/'+table+'?select=*&order='+col+'.'+(opts&&opts.ascending===false?'desc':'asc'), {headers:H}).then(r=>r.json()).then(data=>({data})),
+    }),
+    insert: (data) => fetch(SUPABASE_URL+'/rest/v1/'+table, {method:'POST',headers:H,body:JSON.stringify(data)}).then(async r=>{ if(!r.ok){const e=await r.json();return {error:{message:e.message||r.statusText}};} return {error:null}; }),
+    update: (data) => ({
+      eq: (col, val) => fetch(SUPABASE_URL+'/rest/v1/'+table+'?'+col+'=eq.'+val, {method:'PATCH',headers:H,body:JSON.stringify(data)}).then(async r=>{ if(!r.ok){const e=await r.json();return {error:{message:e.message||r.statusText}};} return {error:null}; })
+    })
+  })
+};
+
+const PLANOS = {
+  '4 aulas':  { dias: 30 },
+  '10 aulas': { dias: 30 },
+  '20 aulas': { dias: 45 },
+};
+
+let alunos = [], selecionado = null;
+
+function iniciais(nome) { return nome.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase(); }
+
+function statusAluno(a) {
+  if (a.data_fim && new Date(a.data_fim) < new Date()) return 'expired';
+  if (a.aulas_restantes <= 0) return 'empty';
+  if (a.aulas_restantes <= 2) return 'low';
+  return 'ok';
+}
+
+async function carregar() {
+  const { data } = await sb.from('alunos').select('*').order('nome');
+  alunos = data || [];
+  renderGrid(alunos);
+}
+
+function renderGrid(lista) {
+  const grid = document.getElementById('grid');
+  if (!lista.length) { grid.innerHTML = '<div class="loading">Nenhum aluno encontrado</div>'; return; }
+  grid.innerHTML = lista.map(a => {
+    const st = statusAluno(a);
+    const bloqueado = st === 'expired' || st === 'empty';
+    const sub = st === 'expired' ? 'Contrato vencido — fale com o professor' :
+                st === 'empty'   ? 'Sem aulas — fale com o professor' :
+                st === 'low'     ? `${a.aulas_restantes} aula${a.aulas_restantes!==1?'s':''} restante${a.aulas_restantes!==1?'s':''}` :
+                `${a.aulas_restantes} aulas restantes`;
+    return `<button class="aluno-btn" onclick="selecionar(${a.id})" ${bloqueado?'disabled':''}>
+      <div class="avatar ${st}">${iniciais(a.nome)}</div>
+      <div class="aluno-info">
+        <div class="aluno-nome">${a.nome}</div>
+        <div class="aluno-sub ${st}">${sub}</div>
+      </div>
+    </button>`;
+  }).join('');
+}
+
+function filtrar(v) { renderGrid(alunos.filter(a => a.nome.toLowerCase().includes(v.toLowerCase()))); }
+
+function selecionar(id) {
+  selecionado = alunos.find(a => a.id === id);
+  const a = selecionado;
+  document.getElementById('c-nome').textContent = a.nome;
+
+  let info = `Plano ${a.plano} · ${a.aulas_restantes} aula${a.aulas_restantes!==1?'s':''} restante${a.aulas_restantes!==1?'s':''}`;
+  if (a.data_fim) {
+    const dias = Math.ceil((new Date(a.data_fim) - new Date()) / 86400000);
+    info += `\nContrato válido por mais ${dias} dia${dias!==1?'s':''}`;
+  } else {
+    info += '\nContrato começa hoje';
+  }
+  document.getElementById('c-info').textContent = info;
+  document.getElementById('screen-confirma').classList.add('show');
+}
+
+function voltarLista() {
+  document.getElementById('screen-confirma').classList.remove('show');
+  document.getElementById('search').value = '';
+  renderGrid(alunos);
+  selecionado = null;
+}
+
+async function confirmarCheckin() {
+  const btn = document.getElementById('btn-cheguei');
+  btn.disabled = true; btn.textContent = 'Registrando...';
+
+  const a = selecionado;
+  const agora = new Date().toISOString();
+  const novasAulas = a.aulas_restantes - 1;
+  const updates = { aulas_restantes: novasAulas };
+
+  if (!a.data_inicio) {
+    const dias = PLANOS[a.plano]?.dias || 30;
+    const fim = new Date(); fim.setDate(fim.getDate() + dias);
+    updates.data_inicio = agora;
+    updates.data_fim = fim.toISOString();
+  }
+
+  const { error: e1 } = await sb.from('alunos').update(updates).eq('id', a.id);
+  if (e1) { btn.disabled=false; btn.textContent='CHEGUEI!'; alert('Erro ao atualizar aulas: ' + e1.message); return; }
+
+  const { error: e2 } = await sb.from('checkins').insert({ aluno_id: a.id, aluno_nome: a.nome, aulas_restantes_apos: novasAulas, criado_em: agora });
+  if (e2) { btn.disabled=false; btn.textContent='CHEGUEI!'; alert('Erro ao registrar check-in: ' + e2.message); return; }
+
+  Object.assign(a, updates);
+  alunos = alunos.map(x => x.id === a.id ? {...x, ...updates} : x);
+  document.getElementById('screen-confirma').classList.remove('show');
+  mostrarSucesso(a, novasAulas);
+}
+
+function mostrarSucesso(a, aulas) {
+  document.getElementById('s-nome').textContent = a.nome.split(' ')[0].toUpperCase();
+  document.getElementById('s-num').textContent = aulas;
+
+  const dataFim = a.data_fim;
+  if (dataFim) {
+    const dias = Math.ceil((new Date(dataFim) - new Date()) / 86400000);
+    const fim = new Date(dataFim).toLocaleDateString('pt-BR');
+    document.getElementById('s-validade').textContent = `Contrato válido até ${fim} · ${dias} dia${dias!==1?'s':''} restante${dias!==1?'s':''}`;
+  }
+
+  const aviso = document.getElementById('s-aviso');
+  if (aulas === 0) aviso.innerHTML = '<div class="aviso aviso-danger">🔴 Suas aulas acabaram! Fale com o professor.</div>';
+  else if (aulas <= 2) aviso.innerHTML = `<div class="aviso aviso-warn">⚠️ Restam só ${aulas} aula${aulas!==1?'s':''}. Renove em breve!</div>`;
+  else aviso.innerHTML = '';
+
+  const prog = document.getElementById('prog');
+  prog.style.animation='none'; prog.offsetHeight;
+  prog.style.animation='shrink 4s linear forwards';
+
+  document.getElementById('screen-sucesso').classList.add('show');
+
+  setTimeout(() => {
+    document.getElementById('screen-sucesso').classList.remove('show');
+    document.getElementById('search').value = '';
+    const btn = document.getElementById('btn-cheguei');
+    btn.disabled=false; btn.textContent='CHEGUEI!';
+    carregar();
+    selecionado = null;
+  }, 4000);
+}
+
+carregar();
+</script>
+</body>
+</html>
